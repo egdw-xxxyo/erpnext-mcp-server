@@ -22,9 +22,11 @@ import {
   ReadResourceRequestSchema
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance } from "axios";
+import { SCRIPT_TOOLS, isScriptTool, handleScriptTool } from "./scripts.js";
+import { LABEL_TEMPLATE_TOOLS, isLabelTemplateTool, handleLabelTemplateTool } from "./labelTemplate.js";
 
 // ERPNext API client configuration
-class ERPNextClient {
+export class ERPNextClient {
   private baseUrl: string;
   private axiosInstance: AxiosInstance;
   private authenticated: boolean = false;
@@ -736,7 +738,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ["filename", "filedata"]
         }
-      }
+      },
+      ...SCRIPT_TOOLS,
+      ...LABEL_TEMPLATE_TOOLS
     ]
   };
 });
@@ -1216,6 +1220,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
       
     default:
+      if (isScriptTool(request.params.name)) {
+        return await handleScriptTool(request.params.name, request.params.arguments, erpnext);
+      }
+      if (isLabelTemplateTool(request.params.name)) {
+        return await handleLabelTemplateTool(request.params.name, request.params.arguments, erpnext);
+      }
       throw new McpError(
         ErrorCode.MethodNotFound,
         `Unknown tool: ${request.params.name}`
